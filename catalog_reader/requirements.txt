@@ -1,0 +1,8 @@
+streamlit
+pandas
+openpyxl
+xlsxwriter
+pymupdf
+pdfplumber
+pydantic>=2
+python-slugify

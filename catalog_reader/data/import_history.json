@@ -1,0 +1,62 @@
+[
+  {
+    "created_at": "2026-05-07 10:06:46",
+    "source_file": "VOLVO_CATALOGUE_2026.pdf",
+    "brand": "semlastik",
+    "prefix": "CZJ",
+    "parser_name": "generic_pdf",
+    "detected_brand": "VOLVO",
+    "detection_source": "file_content",
+    "file_hash": "289890586b17e076600979e775debef7b221bcd2506dd33472bc89eeaf165764",
+    "output_path": "output\\semlastik_CZJ_VOLVO_CATALOGUE_2026_parsed.xlsx",
+    "output_file": "semlastik_CZJ_VOLVO_CATALOGUE_2026_parsed.xlsx",
+    "total": 1526,
+    "ready": 1457,
+    "needs_review": 57,
+    "no_oe": 12,
+    "duplicates": 0,
+    "errors": 0
+  },
+  {
+    "created_at": "2026-05-05 17:26:20",
+    "source_file": "MERCEDES_CATALOGUE_2026.pdf",
+    "brand": "semlastik",
+    "prefix": "CZJ",
+    "output_path": "output\\semlastik_CZJ_MERCEDES_CATALOGUE_2026_parsed.xlsx",
+    "output_file": "semlastik_CZJ_MERCEDES_CATALOGUE_2026_parsed.xlsx",
+    "total": 2926,
+    "ready": 2798,
+    "needs_review": 58,
+    "no_oe": 70,
+    "duplicates": 0,
+    "errors": 0
+  },
+  {
+    "created_at": "2026-05-05 15:01:53",
+    "source_file": "IVECO_CATALOGUE_2026.pdf",
+    "brand": "semlastik",
+    "prefix": "CZJ",
+    "output_path": "output\\semlastik_CZJ_IVECO_CATALOGUE_2026_parsed.xlsx",
+    "output_file": "semlastik_CZJ_IVECO_CATALOGUE_2026_parsed.xlsx",
+    "total": 701,
+    "ready": 694,
+    "needs_review": 1,
+    "no_oe": 6,
+    "duplicates": 0,
+    "errors": 0
+  },
+  {
+    "created_at": "2026-05-05 10:29:17",
+    "source_file": "DAF_PRODUCT_CATALOGUE_2026.pdf",
+    "brand": "semlastik",
+    "prefix": "CZJ",
+    "output_path": "output\\semlastik_CZJ_DAF_PRODUCT_CATALOGUE_2026_parsed.xlsx",
+    "output_file": "semlastik_CZJ_DAF_PRODUCT_CATALOGUE_2026_parsed.xlsx",
+    "total": 978,
+    "ready": 929,
+    "needs_review": 44,
+    "no_oe": 5,
+    "duplicates": 0,
+    "errors": 0
+  }
+]
