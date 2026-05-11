@@ -8,6 +8,7 @@ import streamlit as st
 
 from catalog_detector import CatalogDetectionResult, detect_catalog_supplier
 from exporters.excel_exporter import export_import_result_to_excel
+from exporters.site_import_exporter import export_site_import_from_result
 from import_history import (
     add_import_history_item,
     clear_import_history,
@@ -106,9 +107,10 @@ def main() -> None:
             "Поставщик и prefix будут определены автоматически по файлу и справочнику брендов."
         )
 
-    tab_import, tab_history = st.tabs(
+    tab_import, tab_site_import, tab_history = st.tabs(
         [
             "Обработка каталога",
+            "Импорт на сайт",
             "История обработок",
         ]
     )
@@ -120,9 +122,11 @@ def main() -> None:
             manual_prefix_input=manual_prefix_input,
         )
 
+    with tab_site_import:
+        show_site_import_tab()
+
     with tab_history:
         show_history_tab()
-
 
 def show_import_tab(
     registry,
@@ -350,6 +354,201 @@ def show_detection_panel(
                 height=250,
             )
 
+def show_site_import_tab() -> None:
+    """
+    Формирует файл для импорта на сайт.
+
+    Формат сайта:
+    brand | code | brand_from | code_from
+
+    Где:
+    brand      = производитель детали / поставщик
+    code       = артикул поставщика
+    brand_from = производитель оригинального номера / vehicle_brand
+    code_from  = OE номер
+    """
+
+    st.subheader("Импорт на сайт")
+
+    st.write(
+        "Эта вкладка формирует отдельный Excel-файл для сайта в формате:"
+    )
+
+    st.code(
+        "brand | code | brand_from | code_from",
+        language="text",
+    )
+
+    st.caption(
+        "Файл создается только из последнего обработанного каталога. "
+        "В сайт-файл попадают только строки со статусом ready, где есть article, OE номер и vehicle_brand."
+    )
+
+    if "last_result" not in st.session_state:
+        st.info("Сначала обработай каталог во вкладке “Обработка каталога”.")
+        return
+
+    result = st.session_state["last_result"]
+    summary = result.summary()
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Всего строк", summary["total"])
+
+    with col2:
+        st.metric("Ready", summary["ready"])
+
+    with col3:
+        st.metric("Needs review", summary["needs_review"])
+
+    with col4:
+        st.metric("No OE", summary["no_oe"])
+
+    site_preview_df = result_to_site_import_preview_dataframe(result)
+
+    if site_preview_df.empty:
+        st.warning(
+            "Нет строк, которые можно безопасно отправить на сайт. "
+            "Проверь, что в результате есть ready-строки с vehicle_brand и OE номерами."
+        )
+        return
+
+    st.write("**Предпросмотр файла для сайта**")
+
+    st.dataframe(
+        site_preview_df.head(200),
+        use_container_width=True,
+        height=400,
+    )
+
+    st.caption(f"Всего строк для сайта: {len(site_preview_df)}")
+
+    if st.button("Сформировать файл для сайта", type="primary"):
+        export_result = export_site_import_from_result(result)
+
+        st.session_state["last_site_import_path"] = str(export_result.ready_path)
+
+        if export_result.review_path:
+            st.session_state["last_site_import_review_path"] = str(export_result.review_path)
+        else:
+            st.session_state.pop("last_site_import_review_path", None)
+
+        st.success(
+            f"Файл для сайта сформирован. Строк: {export_result.ready_count}. "
+            f"Отправлено в review: {export_result.skipped_count}."
+        )
+
+    if "last_site_import_path" in st.session_state:
+        site_import_path = Path(st.session_state["last_site_import_path"])
+
+        if site_import_path.exists():
+            with open(site_import_path, "rb") as file:
+                st.download_button(
+                    label="Скачать файл для сайта",
+                    data=file,
+                    file_name=site_import_path.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+
+    if "last_site_import_review_path" in st.session_state:
+        review_path = Path(st.session_state["last_site_import_review_path"])
+
+        if review_path.exists():
+            st.warning(
+                "Часть строк не попала в файл для сайта. "
+                "Скачай review-файл и проверь причины."
+            )
+
+            with open(review_path, "rb") as file:
+                st.download_button(
+                    label="Скачать review-файл",
+                    data=file,
+                    file_name=review_path.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+
+def result_to_site_import_preview_dataframe(result: ImportResult) -> pd.DataFrame:
+    """
+    Делает предпросмотр формата для сайта:
+
+    brand | code | brand_from | code_from
+    """
+
+    rows = []
+
+    for row in result.ready_rows:
+        if not row.article:
+            continue
+
+        if not row.vehicle_brand:
+            continue
+
+        if not row.oe_numbers:
+            continue
+
+        for oe_number in row.oe_numbers:
+            if not oe_number:
+                continue
+
+            rows.append(
+                {
+                    "brand": format_preview_site_brand(row.brand),
+                    "code": str(row.article).strip(),
+                    "brand_from": str(row.vehicle_brand).strip().upper(),
+                    "code_from": str(oe_number).strip(),
+                    "load_image": "0",
+                    "load_characteristics": "0",
+                    "load_cross": "1",
+                    "load_applicability": "0",
+                }
+            )
+
+    columns = [
+        "brand",
+        "code",
+        "brand_from",
+        "code_from",
+        "load_image",
+        "load_characteristics",
+        "load_cross",
+        "load_applicability",
+    ]
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return pd.DataFrame(columns=columns)
+
+    df = df.drop_duplicates()
+
+    return df[columns].fillna("").astype(str)
+
+
+def format_preview_site_brand(value: str) -> str:
+    """
+    Формат brand для предпросмотра сайта.
+
+    semlastik -> Semlastik
+    SEMLASTIK -> Semlastik
+    3G -> 3G
+    BPW -> BPW
+    """
+
+    value = str(value or "").strip()
+
+    if not value:
+        return ""
+
+    if any(char.isdigit() for char in value):
+        return value.upper()
+
+    if len(value) <= 3:
+        return value.upper()
+
+    return value.lower().title()
 
 def show_history_tab() -> None:
     st.subheader("История обработок")

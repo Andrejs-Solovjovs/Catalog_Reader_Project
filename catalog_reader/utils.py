@@ -115,6 +115,7 @@ def is_probably_oe_number(value: str) -> bool:
         "TYPE/MODEL",
         "SEM NO",
         "REF NO",
+        "SERIES",
     ]
 
     if any(fragment in upper for fragment in bad_fragments):
